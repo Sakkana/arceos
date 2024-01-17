@@ -1,4 +1,11 @@
+// 条件编译属性指令
+// cfg_attr：根据特定的条件配置 rust 编译行为
+
+// 表示如果 "axstd" 特性被启用，则将代码配置为不使用标准库（no_std）
 #![cfg_attr(feature = "axstd", no_std)]
+
+// 如果 "axstd" 特性被启用，则将代码配置为没有 main 函数（no_main）
+// 通常用于嵌入式系统或裸机编程，其中没有操作系统提供的入口点
 #![cfg_attr(feature = "axstd", no_main)]
 
 #[macro_use]
@@ -8,6 +15,9 @@ extern crate axstd as std;
 use rand::{rngs::SmallRng, RngCore, SeedableRng};
 use std::collections::BTreeMap;
 use std::vec::Vec;
+
+// lab
+use std::collections::HashMap;
 
 fn test_vec(rng: &mut impl RngCore) {
     const N: usize = 3_000_000;
@@ -38,6 +48,23 @@ fn test_btree_map(rng: &mut impl RngCore) {
     println!("test_btree_map() OK!");
 }
 
+// lab
+fn test_hashmap_map(rng: &mut impl RngCore) {
+    const N: usize = 50_000;
+    let mut m = HashMap::new();
+    for _ in 0..N {
+        let value = rng.next_u32();
+        let key = format!("key_{value}");
+        m.insert(key, value);
+    }
+    for (k, v) in m.iter() {
+        if let Some(k) = k.strip_prefix("key_") {
+            assert_eq!(k.parse::<u32>().unwrap(), *v);
+        }
+    }
+    println!("test_hashmap_map() OK!");
+}
+
 #[cfg_attr(feature = "axstd", no_mangle)]
 fn main() {
     println!("Running memory tests...");
@@ -45,6 +72,7 @@ fn main() {
     let mut rng = SmallRng::seed_from_u64(0xdead_beef);
     test_vec(&mut rng);
     test_btree_map(&mut rng);
+    test_hashmap_map(&mut rng);
 
     println!("Memory tests run OK!");
 }

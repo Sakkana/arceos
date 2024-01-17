@@ -10,6 +10,7 @@
 
 #![no_std]
 #![cfg_attr(feature = "allocator_api", feature(allocator_api))]
+#![feature(result_option_inspect)]
 
 #[cfg(feature = "bitmap")]
 mod bitmap;

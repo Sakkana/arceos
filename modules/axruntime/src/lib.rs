@@ -103,6 +103,8 @@ fn is_init_ok() -> bool {
 /// and the secondary CPUs call [`rust_main_secondary`].
 #[cfg_attr(not(test), no_mangle)]
 pub extern "C" fn rust_main(cpu_id: usize, dtb: usize) -> ! {
+
+    // 打印 logo 和基本信息
     ax_println!("{}", LOGO);
     ax_println!(
         "\
@@ -121,11 +123,13 @@ pub extern "C" fn rust_main(cpu_id: usize, dtb: usize) -> ! {
         option_env!("AX_LOG").unwrap_or(""),
     );
 
+    // 初始化日志系统
     axlog::init();
     axlog::set_max_level(option_env!("AX_LOG").unwrap_or("")); // no effect if set `log-level-*` features
     info!("Logging is enabled.");
     info!("Primary CPU {} started, dtb = {:#x}.", cpu_id, dtb);
 
+    // kernel 各个段的范围
     info!("Found physcial memory regions:");
     for r in axhal::mem::memory_regions() {
         info!(
@@ -137,39 +141,49 @@ pub extern "C" fn rust_main(cpu_id: usize, dtb: usize) -> ! {
         );
     }
 
+    // 初始化全局内存分配器
     #[cfg(feature = "alloc")]
     init_allocator();
 
+    // 重新映射各个段 -> 精确控制各个段的安全权限
     #[cfg(feature = "paging")]
     {
         info!("Initialize kernel page table...");
         remap_kernel_memory().expect("remap kernel memoy failed");
     }
 
+    // 本平台出初始化
     info!("Initialize platform devices...");
     axhal::platform_init();
 
+    // 调度器
     #[cfg(feature = "multitask")]
     axtask::init_scheduler();
 
     #[cfg(any(feature = "fs", feature = "net", feature = "display"))]
     {
+        // 驱动
         #[allow(unused_variables)]
         let all_devices = axdriver::init_drivers();
 
+        // 文件系统
         #[cfg(feature = "fs")]
         axfs::init_filesystems(all_devices.block);
 
+        // 网络
         #[cfg(feature = "net")]
         axnet::init_network(all_devices.net);
 
+        // 显卡
         #[cfg(feature = "display")]
         axdisplay::init_display(all_devices.display);
     }
 
+    // 启动其他 CPU
     #[cfg(feature = "smp")]
     self::mp::start_secondary_cpus(cpu_id);
 
+    // 中断
     #[cfg(feature = "irq")]
     {
         info!("Initialize interrupt handlers...");
@@ -185,6 +199,7 @@ pub extern "C" fn rust_main(cpu_id: usize, dtb: usize) -> ! {
     info!("Primary CPU {} init OK.", cpu_id);
     INITED_CPUS.fetch_add(1, Ordering::Relaxed);
 
+    // 等待所有 CPU 都启动
     while !is_init_ok() {
         core::hint::spin_loop();
     }

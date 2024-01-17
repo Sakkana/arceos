@@ -29,6 +29,8 @@
 #![feature(naked_functions)]
 #![feature(const_option)]
 #![feature(doc_auto_cfg)]
+#![feature(const_maybe_uninit_zeroed)]  // 构建时报错，添加这个
+
 
 #[allow(unused_imports)]
 #[macro_use]
@@ -50,6 +52,7 @@ pub mod irq;
 
 #[cfg(feature = "paging")]
 pub mod paging;
+// mod misc;
 
 /// Console input and output.
 pub mod console {
@@ -64,9 +67,11 @@ pub mod console {
 }
 
 /// Miscellaneous operation, e.g. terminate the system.
-pub mod misc {
-    pub use super::platform::misc::*;
-}
+// pub mod misc {
+//     pub use super::platform::misc::*;
+// }
+pub mod misc;
+
 
 /// Multi-core operations.
 #[cfg(feature = "smp")]

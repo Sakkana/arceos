@@ -18,6 +18,9 @@ extern "C" {
     fn rust_main_secondary(cpu_id: usize);
 }
 
+// SBI -> boot.rs -> rust_entry -> rust_main
+// 清除 bss 段，启动主 CPU，设置向量表
+// entry 是 unikernel 用的，不是宏内核用的
 unsafe extern "C" fn rust_entry(cpu_id: usize, dtb: usize) {
     crate::mem::clear_bss();
     crate::cpu::init_primary(cpu_id);
